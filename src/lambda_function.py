@@ -1,27 +1,61 @@
-
+# lambda_function.py
 import json
 import boto3
-from src.book_digitizer import BookDigitizer 
+import os
+import ast
 
-s3 = boto3.client('s3')
 
+ecs = boto3.client('ecs')
+
+CLUSTER_NAME = os.getenv('CLUSTER_NAME')
+TASK_DEFINITION = os.getenv('TASK_DEFINITION')
+SUBNETS = ast.literal_eval(os.getenv('SUBNETS')) # type: ignore
+SECURITY_GROUPS = ast.literal_eval(os.getenv('SECURITY_GROUPS')) # type: ignore
+LAUNCH_TYPE = 'FARGATE'
 
 def lambda_handler(event, context):
-    bucket = event['Records'][0]['s3']['bucket']['name']
-    key = event['Records'][0]['s3']['object']['key']
+    print("Received event:", json.dumps(event))
+    print('\n')
+    
+    # Extract S3 bucket and key from the event
+    s3_bucket = event['Records'][0]['s3']['bucket']['name']
+    s3_key = event['Records'][0]['s3']['object']['key']
+    book_name = s3_key.split('/')[0]
 
-    # Assuming key = book_name/full_book.pdf
-    book_name = key.split('/')[0]
-
-    # Download the full PDF locally (in /tmp for Lambda)
-    download_path = f"/tmp/{key.split('/')[-1]}"
-    s3.download_file(bucket, key, download_path)
-
-    # Initialize and run digitizer
-    digitizer = BookDigitizer(source_pdf=download_path, book_name=book_name)
-    digitizer.batch_and_upload_pdf()
-
+    # Pass the S3 file location as an environment variable or override
+    overrides = {
+        'containerOverrides': [
+            {
+                'name': 'book-digitization-container',
+                'environment': [
+                    {'name': 'S3_BUCKET', 'value': s3_bucket},
+                    {'name': 'S3_KEY', 'value': s3_key},
+                    {'name': 'BOOK_NAME', 'value': book_name},
+                    {'name': 'MISTRAL_API_KEY', 'value': os.getenv('MISTRAL_API_KEY')}
+                ]
+            }
+        ]
+    }
+    
+    response = ecs.run_task(
+        cluster=CLUSTER_NAME,
+        taskDefinition=TASK_DEFINITION,
+        launchType=LAUNCH_TYPE,
+        networkConfiguration={
+            'awsvpcConfiguration': {
+                'subnets': SUBNETS,
+                'securityGroups': SECURITY_GROUPS,
+                'assignPublicIp': 'ENABLED'
+            }
+        },
+        overrides=overrides
+    )
+    
+    print("ECS task started:", response['tasks'][0]['taskArn'])
+    
     return {
         'statusCode': 200,
-        'body': json.dumps('Batch upload complete')
+        'body': json.dumps('ECS task started successfully')
     }
+
+
