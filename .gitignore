@@ -2,3 +2,5 @@ __pycache__/
 lambda_build/
 lambda_payload.zip
 .env
+scratch.ipynb
+passrole-policy.json

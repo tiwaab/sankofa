@@ -36,5 +36,12 @@ def main():
     digitizer.extract_and_upload_images()
     logger.info("Image extraction complete")
 
+    logger.info("Processing text with textract")
+    digitizer.process_with_textract()
+    digitizer.link_images_to_content()
+    digitizer.generate_quarto_structure()
+    digitizer.create_quarto_book()
+
+
 if __name__ == "__main__":
     main()

@@ -3,3 +3,4 @@ requests
 pathlib
 PyPDF2
 mistralai
+pyyaml

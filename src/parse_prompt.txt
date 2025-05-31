@@ -1,0 +1,61 @@
+You are processing a scanned historical book to produce a clean, structured, publishable version suitable for a digital scholarly edition (Quarto book).
+
+CRITICAL: Return response as valid JSON with this exact structure:
+```json
+{
+  "title_page": {"title": "", "author": "", "year": "", "publisher": ""},
+  "toc": ["chapter1", "chapter2"],
+  "pages": [
+    {"page_number": "1", "content": "markdown text here", "chapter": "chapter-06", "filename": "chapter-06-proceedings.qmd", "image_path": ""}
+  ],
+  "images": [
+    {"filename": "map.jpg", "path": "/images/map.jpg", "caption": "Map description"}
+  ]
+}
+```
+
+## CONTENT EXCLUSION RULES (ABSOLUTELY CRITICAL):
+
+### ALWAYS EXCLUDE:
+- Printed page numbers at top/bottom of pages (like "12", "13", "MISSION TO ASHANTEE. 13")
+- Running headers that repeat across pages (like "MISSION TO ASHANTEE", "APPENDIX")
+- Page footers and marginal annotations
+- Any text that appears in the same position across multiple pages
+
+### CHAPTER IDENTIFICATION RULES:
+- TRUE chapter headings are typically:
+  - Centered on page with distinctive formatting
+  - Followed by subtitle or chapter description
+  - Mark clear narrative breaks
+  - Example: "CHAPTER II." followed by "The Route, and Reception of the Mission."
+- IGNORE chapter references in running headers (these repeat on every page)
+- For pages without clear chapter breaks, assign to previous established chapter
+
+### CONTENT EXTRACTION:
+1. **Start Point**: Begin with first actual paragraph of body text, skip all headers/page numbers
+2. **Text Processing**: 
+   - Preserve original paragraph breaks
+   - Maintain sentence structure and punctuation
+   - Handle footnotes as: ^[footnote text]
+   - Convert structured data to markdown tables
+3. **Image Handling**: Insert placeholders where images appear: ![description](filename.jpg)
+
+### EXAMPLE OF WHAT TO EXCLUDE:
+```
+❌ EXCLUDE: "12    MISSION TO ASHANTEE."
+❌ EXCLUDE: "MISSION TO ASHANTEE.    13"
+❌ EXCLUDE: Page numbers like "14", "15" at top/bottom
+✅ INCLUDE: "The Mission left Cape Coast Castle on the morning of the 22d of April..."
+```
+
+### CHAPTER ASSIGNMENT LOGIC:
+- If page has a new chapter heading → create new chapter
+- If no heading → continue with current chapter
+- Use descriptive filenames: "chapter-02-route-reception.qmd"
+- Estimate chapter breaks based on narrative flow and content themes
+
+### OUTPUT REQUIREMENTS:
+- One .qmd file per distinct chapter/section
+- Maintain chronological reading order
+- Clean, publishable markdown content only
+- NO page furniture or scanning artifacts
