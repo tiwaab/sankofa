@@ -223,7 +223,6 @@ class BookDigitizer:
         page_images = {}
         for obj in image_objects['Contents']:
             filename = obj['Key'].split('/')[-1]
-            # Extract page number from filename like "page_1_image_1.jpg"
             if filename.startswith('page_'):
                 page_num = int(filename.split('_')[1])
                 if page_num not in page_images:
@@ -235,15 +234,15 @@ class BookDigitizer:
         
         # Update parsed content with image links
         for batch in self.parsed_content:
-            for page in batch.get('pages', []):
-                page_num = int(page['page_number'])
-                if page_num in page_images:
-                    # Insert images at start of page content
-                    image_markdown = '\n'.join([
-                        f"![Image {i+1}]({img['url']})" 
-                        for i, img in enumerate(page_images[page_num])
-                    ])
-                    page['content'] = f"{image_markdown}\n\n{page['content']}"
+            if 'pages' in batch:  # Check if batch has pages key
+                for page in batch['pages']:
+                    page_num = int(page['page_number'])
+                    if page_num in page_images:
+                        image_markdown = '\n'.join([
+                            f"![Image {i+1}]({img['url']})" 
+                            for i, img in enumerate(page_images[page_num])
+                        ])
+                        page['content'] = f"{image_markdown}\n\n{page['content']}"
         
         # Save updated content
         for i, batch in enumerate(self.parsed_content):
