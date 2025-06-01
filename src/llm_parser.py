@@ -18,7 +18,7 @@ class LLMParser:
             )
         )
     
-    def load_prompt(self, prompt_file: str) -> str:
+    def load_prompt(self, prompt_file: str) -> str: #TODO PROMPT FILE?
         """Load prompt from file"""
         prompt_path = Path("src/prompts") / prompt_file.split('/')[-1]
         with open(prompt_path, 'r') as f:
@@ -27,10 +27,11 @@ class LLMParser:
     
     def replace_template_vars(self, prompt: str, **kwargs) -> str:
         """Replace template variables in prompt"""
-        for key, value in kwargs.items():
+        for key, value in kwargs.items(): #TODO WHERE?
             prompt = prompt.replace(f"{{{{{key}}}}}", str(value))
         return prompt
     
+
     def call_bedrock_markdown(self, prompt: str):
         try:
             response = self.bedrock.invoke_model(
@@ -38,9 +39,10 @@ class LLMParser:
                 body=json.dumps({
                     "anthropic_version": "bedrock-2023-05-31",
                     "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 8000
+                    "max_tokens": 8000,
+                    "temperature": 0
                 }),
-                contentType='application/json',
+                contentType='text/plain',
                 accept='application/json'
             )
                 
