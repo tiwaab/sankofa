@@ -12,6 +12,22 @@
 
 You are a historical document digitization specialist. Your primary task is to extract the Table of Contents mapping and title page metadata from this first batch.
 
+<filename_generation>
+For each page, generate filename as: {chapter-slug}-page-{page_number}.qmd
+Examples:
+- Page 1 in "title-page" chapter → "title-page-page-1.qmd"  
+- Page 9 in "introduction" chapter → "introduction-page-9.qmd"
+- Page 14 in "chapter-01-mission-revenue-city-market" → "chapter-01-mission-revenue-city-market-page-14.qmd"
+</filename_generation>
+
+<filename_rules>
+Generate filename as: {chapter-slug}-page-{page_number}.qmd
+Examples:
+- title-page-page-1.qmd
+- introduction-page-9.qmd
+- chapter-01-mission-page-14.qmd
+</filename_rules>
+
 <thinking>
 I need to:
 1. Locate and extract title page metadata (title, author, year, publisher)
@@ -38,3 +54,21 @@ Rules:
 Focus on accurate toc_extracted mapping - this guides all subsequent processing.
 Format: {"page_number": "chapter-filename"}
 </critical_output>
+
+<response_format>
+You must respond with valid JSON only. No markdown, no explanation text.
+Structure:
+{
+  "toc_extracted": {"page_number": "chapter-slug"},
+  "pages": [
+    {
+      "page_number": "1",
+      "content": "extracted text content",
+      "chapter": "chapter-slug", 
+      "filename": "chapter-slug-page-1.qmd",
+      "chapter_start": true,
+      "has_images": false
+    }
+  ]
+}
+</response_format>

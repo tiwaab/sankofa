@@ -137,6 +137,7 @@ class BookDigitizer:
         
         logger.info(f"Extracted and uploaded {image_count} images")
 
+
     def process_batch_with_llm(self, textract_output, batch_start_page, batch_end_page, is_first_batch=False):
         """Process batch using LLM parser"""
         
@@ -158,13 +159,13 @@ class BookDigitizer:
             )
         
         # Update context for next batch
-        if parsed_data.toc_extracted:
-            self.toc_mapping.update(parsed_data.toc_extracted)
-        
+        if parsed_data.get('toc_extracted'):
+            self.toc_mapping.update(parsed_data['toc_extracted'])
+
         # Update current chapter from last page
-        if parsed_data.pages:
-            self.current_chapter = parsed_data.pages[-1].chapter
-        
+        if parsed_data.get('pages'):
+            self.current_chapter = parsed_data['pages'][-1].get('chapter')
+
         return parsed_data
 
     def save_parsed_content(self, parsed_data, batch_num):
