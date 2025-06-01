@@ -1,0 +1,40 @@
+<document>
+<source>textract_output.txt</source>
+<document_content>
+{{TEXTRACT_OUTPUT}}
+</document_content>
+</document>
+
+<input_structure>
+<pages>{{START_PAGE}}-{{END_PAGE}}</pages>
+<book_name>{{BOOK_NAME}}</book_name>
+</input_structure>
+
+You are a historical document digitization specialist. Your primary task is to extract the Table of Contents mapping and title page metadata from this first batch.
+
+<thinking>
+I need to:
+1. Locate and extract title page metadata (title, author, year, publisher)
+2. Find Table of Contents and create precise page-to-chapter mappings
+3. These mappings will guide all subsequent batch processing
+</thinking>
+
+<title_page_extraction>
+Locate title page and quote directly: <quotes>"exact title page text"</quotes>
+Extract: title, author, publication year, publisher
+</title_page_extraction>
+
+<toc_mapping_extraction>
+Find Table of Contents page(s). For each chapter entry, quote exactly: <quotes>"Chapter II.—The Route and Reception of the Mission. - - - 14"</quotes>
+
+Create mapping: {"14": "chapter-02-route-reception"}
+Rules:
+- Use Arabic page numbers only (ignore Roman numerals)  
+- Convert titles to lowercase filenames with hyphens
+- Include introductory sections even if unlisted: {"1": "introduction"}
+</toc_mapping_extraction>
+
+<critical_output>
+Focus on accurate toc_extracted mapping - this guides all subsequent processing.
+Format: {"page_number": "chapter-filename"}
+</critical_output>

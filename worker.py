@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def main():
     bucket = os.getenv('S3_BUCKET') or os.getenv('BUCKET_NAME')
     pdf_key = os.getenv('S3_KEY')
-    batch_size = int(os.getenv('BATCH_SIZE', 20))  # default 20
+    batch_size = int(os.getenv('BATCH_SIZE', 20))
     tmp_dir = os.getenv('TMP_DIR', '/tmp')
 
     if not bucket or not pdf_key:
@@ -36,12 +36,25 @@ def main():
     digitizer.extract_and_upload_images()
     logger.info("Image extraction complete")
 
-    logger.info("Processing text with textract")
+    logger.info("Processing text with Textract and LLM")
     digitizer.process_with_textract()
+    logger.info("LLM processing complete")
+    
+    logger.info("Linking images to content")
     digitizer.link_images_to_content()
+    logger.info("Image linking complete")
+    
+    logger.info("Creating chapter structure")
+    digitizer.create_quarto_chapters()
+    logger.info("Chapter creation complete")
+    
+    logger.info("Generating Quarto structure")
     digitizer.generate_quarto_structure()
+    logger.info("Structure generation complete")
+    
+    logger.info("Creating final Quarto book")
     digitizer.create_quarto_book()
-
+    logger.info("Book creation complete")
 
 if __name__ == "__main__":
     main()

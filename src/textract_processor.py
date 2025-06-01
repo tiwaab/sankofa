@@ -1,6 +1,10 @@
+#textract_processor.py
 import boto3
 import time
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class TextractProcessor:
     def __init__(self, bucket_name, book_name):
@@ -22,7 +26,7 @@ class TextractProcessor:
         )
         
         job_id = response['JobId']
-        print(f"Started Textract job {job_id} for {s3_key}")
+        logger.info(f"Started Textract job {job_id} for {s3_key}")
         
         # Poll for completion
         while True:
@@ -55,16 +59,16 @@ class TextractProcessor:
                     ContentType='text/plain'
                 )
                 
-                print(f"Saved processed text: {text_key}")
+                logger.info(f"Saved processed text: {text_key}")
                 return text_key
                 
             elif status == 'FAILED':
-                print(f"Textract job {job_id} failed")
+                logger.error(f"Textract job {job_id} failed")
                 return None
                 
             else:
-                print(f"Job {job_id} status: {status}, waiting...")
-                time.sleep(10)
+                logger.info(f"Job {job_id} status: {status}, waiting...")
+                time.sleep(3)
     
     def _extract_structured_text(self, textract_blocks, start_page, end_page):
         """Extract text with page numbers and figure placeholders"""

@@ -1,6 +1,6 @@
 boto3
 requests
-pathlib
 PyPDF2
-mistralai
 pyyaml
+pydantic-ai
+mistralai
