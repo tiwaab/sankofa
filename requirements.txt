@@ -3,3 +3,5 @@ requests
 PyPDF2
 pyyaml
 mistralai
+google-cloud-vision
+google-cloud-storage

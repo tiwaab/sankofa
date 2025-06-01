@@ -13,15 +13,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class BookDigitizer:
-    def __init__(self, source_pdf, book_name):
+    def __init__(self, source_pdf, book_name, gcs_bucket_name):
         """
         Args:
             source_pdf: Original pdf before it is split
+            book_name: Name for the book
+            gcs_bucket_name: Google Cloud Storage bucket name
         """
         self.source_pdf = source_pdf
         if not self.source_pdf.exists():
             raise FileNotFoundError(f"PDF not found at: {self.source_pdf.resolve()}")
         self.book_name = self._sanitize(book_name)
+        self.gcs_bucket_name = gcs_bucket_name
         self.pdf_url = None
         self.parsed_book = None
         self.bucket_name = "book-digitization"
@@ -73,7 +76,7 @@ class BookDigitizer:
             try:
                 self.s3.upload_file(str(batch_path), self.bucket_name, s3_key)
             except ClientError as e:
-                logger.error(f"Upload failed: {e}")  # Change print() to logger.error()
+                logger.error(f"Upload failed: {e}")
                 raise
             os.remove(batch_path)
             
@@ -137,20 +140,19 @@ class BookDigitizer:
         
         logger.info(f"Extracted and uploaded {image_count} images")
 
-
-    def process_batch_with_llm(self, textract_output, batch_start_page, batch_end_page, is_first_batch=False):
+    def process_batch_with_llm(self, ocr_output, batch_start_page, batch_end_page, is_first_batch=False):
         """Process batch using LLM parser"""
         
         if is_first_batch:
             parsed_data = self.llm_parser.parse_first_batch(
-                textract_output,
+                ocr_output,
                 batch_start_page,
                 batch_end_page,
                 self.book_name
             )
         else:
             parsed_data = self.llm_parser.parse_subsequent_batch(
-                textract_output,
+                ocr_output,
                 batch_start_page,
                 batch_end_page,
                 self.book_name,
@@ -188,29 +190,29 @@ class BookDigitizer:
         logger.info(f"Saved parsed content: {output_key}")
         return output_key
 
-    def process_with_textract(self):
-        """Enhanced version that includes LLM processing"""
-        from src.textract_processor import TextractProcessor
-        processor = TextractProcessor(self.bucket_name, self.book_name)
+    def process_with_ocr(self):
+        """Enhanced version that includes OCR and LLM processing"""
+        from src.google_vision_processor import GoogleVisionProcessor
+        processor = GoogleVisionProcessor(self.bucket_name, self.gcs_bucket_name, self.book_name)
         
         for i, batch_meta in enumerate(self.batch_metadata):
             s3_key = batch_meta['s3_uri'].replace(f"s3://{self.bucket_name}/", "")
             
-            # Get Textract output
-            textract_output_key = processor.process_batch(
+            # Get OCR output
+            ocr_output_key = processor.process_batch(
                 s3_key, 
                 batch_meta['start_page'], 
                 batch_meta['end_page']
             )
             
-            if textract_output_key:
-                # Get textract content
-                textract_response = self.s3.get_object(Bucket=self.bucket_name, Key=textract_output_key)
-                textract_output = textract_response['Body'].read().decode('utf-8')
+            if ocr_output_key:
+                # Get OCR content
+                ocr_response = self.s3.get_object(Bucket=self.bucket_name, Key=ocr_output_key)
+                ocr_output = ocr_response['Body'].read().decode('utf-8')
                 
                 # Process with LLM
                 parsed_data = self.process_batch_with_llm(
-                    textract_output,
+                    ocr_output,
                     batch_meta['start_page'],
                     batch_meta['end_page'],
                     is_first_batch=(i == 0)
@@ -300,36 +302,6 @@ class BookDigitizer:
             )
             logger.info(f"Created chapter: {chapter_key}")
 
-    def generate_quarto_structure(self):
-        """Generate Quarto book structure from parsed content"""
-        # Combine all parsed batches
-        all_pages = []
-        all_images = []
-        
-        for batch in self.parsed_content:
-            all_pages.extend(batch.get('pages', []))
-            all_images.extend(batch.get('images', []))
-        
-        # Create Quarto config
-        quarto_config = {
-            "project": {"type": "book"},
-            "book": {
-                "title": all_pages[0].get('title', self.book_name) if all_pages else self.book_name,
-                "chapters": [page['filename'] for page in all_pages]
-            }
-        }
-        
-        # Save structure
-        structure_key = f"{self.book_name}/output/quarto_structure.json"
-        self.s3.put_object(
-            Bucket=self.bucket_name,
-            Key=structure_key,
-            Body=json.dumps(quarto_config, indent=2),
-            ContentType='application/json'
-        )
-        
-        logger.info(f"Generated Quarto structure: {structure_key}")
-
     def create_quarto_book(self, output_dir="./quarto_book"):
         """Download parsed content and create local Quarto book, then upload to S3"""
         import os
@@ -350,23 +322,34 @@ class BookDigitizer:
             except:
                 continue
         
+        # Group pages by chapter
+        chapters = {}
+        for page in all_pages:
+            chapter = page.get('chapter', 'frontmatter')
+            if chapter not in chapters:
+                chapters[chapter] = []
+            chapters[chapter].append(page['content'])
+        
+        # Create chapter files
+        chapter_files = []
+        for chapter_name, contents in chapters.items():
+            filename = f"{chapter_name}.qmd"
+            chapter_files.append(filename)
+            
+            with open(f"{output_dir}/{filename}", 'w') as f:
+                f.write('\n\n'.join(contents))
+        
         # Create _quarto.yml
         config = {
             'project': {'type': 'book'},
             'book': {
                 'title': self.book_name,
-                'chapters': [page['filename'] for page in all_pages if page.get('filename')]
+                'chapters': chapter_files
             }
         }
         
         with open(f"{output_dir}/_quarto.yml", 'w') as f:
             yaml.dump(config, f)
-        
-        # Create chapter files
-        for page in all_pages:
-            if page.get('filename'):
-                with open(f"{output_dir}/{page['filename']}", 'w') as f:
-                    f.write(page['content'])
         
         # Download images
         try:

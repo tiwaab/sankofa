@@ -1,3 +1,5 @@
+You are a historical document digitization specialist processing content using established TOC context and digitization standards.
+
 <document>
 <source>textract_output.txt</source>
 <document_content>
@@ -24,120 +26,105 @@
 <book_name>{{BOOK_NAME}}</book_name>
 </input_structure>
 
-You are a historical document digitization specialist processing content using established TOC context and digitization standards.
-
-<filename_generation>
-For each page, generate filename as: {chapter-slug}-page-{page_number}.qmd
-Examples:
-- Page 1 in "title-page" chapter → "title-page-page-1.qmd"  
-- Page 9 in "introduction" chapter → "introduction-page-9.qmd"
-- Page 14 in "chapter-01-mission-revenue-city-market" → "chapter-01-mission-revenue-city-market-page-14.qmd"
-</filename_generation>
-
-<filename_rules>
-Generate filename as: {chapter-slug}-page-{page_number}.qmd
-Examples:
-- title-page-page-1.qmd
-- introduction-page-9.qmd
-- chapter-01-mission-page-14.qmd
-</filename_rules>
-
-<thinking>
-Using provided context:
-1. Assign each page to correct chapter using TOC mapping
-2. Detect new chapter starts within this batch
-3. Apply comprehensive content processing rules
-4. Handle footnotes, images, tables with precision
-5. Maintain quality established in previous batches
-</thinking>
-
 <chapter_assignment>
 For each page, determine chapter using this priority:
-1. **New chapter heading**: Quote <quotes>"CHAPTER III.—Proceedings and Incidents"</quotes> → Set chapter_start: true
-2. **Page matches TOC**: Cross-reference page number with TOC mapping
-3. **No heading**: Continue current_chapter from context
-4. **Content inference**: Use narrative flow
+1. **TOC mapping**: Check if page number exists in provided TOC mapping
+2. **New chapter heading**: Look for <quotes>"CHAPTER III.—Proceedings and Incidents"</quotes> 
+3. **Continue current**: Use current_chapter from context if no new heading
+4. **Content inference**: Use narrative flow and section breaks
 
-Distinguish true headings from running headers by checking repetition across pages.
+Distinguish true headings from running headers by checking formatting and context.
 </chapter_assignment>
 
 <content_processing>
 <text_extraction>
 Extract clean body text, preserve paragraph structure.
-Quote elements to exclude: <quotes>"MISSION TO ASHANTEE"</quotes>, <quotes>"42"</quotes>
+Always exclude: page numbers, running headers like <quotes>"MISSION TO ASHANTEE"</quotes>, footers.
 </text_extraction>
 
+<visuals_and_images>
+Insert markdown placeholders INLINE at exact position where images appear:
+Example: "The exploration began in 1823. ![Map of Western Africa showing trade routes](western-africa-trade-map.jpg) As shown in the map above..."
+Use descriptive filenames: lowercase, hyphens for spaces.
+</visuals_and_images>
+
+<maps_and_diagrams>
+For pages with scattered place names without narrative: <quotes>"ASBEN", "Yahooldee", "BARRABADI"</quotes>
+Output: "![Map: descriptive title](map-page-{page_number}.jpg)"
+Include relevant caption based on content.
+</maps_and_diagrams>
+
 <footnotes>
-Identify symbols (*, †, ‡, |, etc.) inline that reference footnotes at bottom.
-Quote symbol: <quotes>"different country.*"</quotes>
-Quote footnote: <quotes>"* It is observable that..."</quotes>
-Convert to markdown: "different country.^[It is observable that...]"
-Remove duplicate footnote text from bottom area.
+Convert symbols (*, †, ‡, |) to inline markdown footnotes:
+- Original: "different country.*" + footnote "* It is observable that..."
+- Output: "different country.^[It is observable that...]"
+Remove duplicate footnote text from bottom after incorporating.
 </footnotes>
 
-<images>
-Insert placeholders for visual cues: <quotes>"as shown in map"</quotes>, <quotes>"see illustration"</quotes>, <quotes>"figure below"</quotes>
-Format: ![descriptive-caption](filename.jpg) at exact position
-Set has_images: true for pages containing placeholders
-</images>
-
 <tables>
-Convert structured layouts to markdown tables.
-Quote source: <quotes>"English | Singular | Plural"</quotes>
+Convert structured layouts to markdown tables:
+| English   | Singular | Plural |
+|-----------|----------|--------|
+| A woman   | yeo      | yeay   |
+| A stone   | teh      | tai    |
 </tables>
 
 <multilingual_content>
-Quote both languages: <quotes>"Arabic text"</quotes>, <quotes>"English translation"</quotes>
-Format: **Original (Language):** > [text] **Translation:** > [translation]
+Preserve both languages with clear formatting:
+**Original (Arabic):**
+> [Arabic text]
+**Translation (English):**
+> [English translation]
 </multilingual_content>
 
-<errata>
-Incorporate corrections into main text at appropriate locations.
-Don't include errata listing in final output.
-</errata>
-
-<missing_pages>
-Note gaps in page sequence or missing content references.
-Don't infer or fabricate missing pages.
-</missing_pages>
+<errata_handling>
+If corrections noted in previous context, incorporate into main text.
+Do not include errata listings in output.
+</errata_handling>
 
 <sheet_music>
-Treat as image unless notation can be programmatically extracted.
+Treat as image: ![Sheet music notation](music-page-{page_number}.jpg)
 Place inline where it appears with descriptive label.
 </sheet_music>
-</content_processing>
+
+<introductory_sections>
+Include unlisted sections like appendices, glossaries, vocabulary lists.
+Assign appropriate chapter names even if not in original TOC.
+</introductory_sections>
+
+<formatting_rules>
+- Headings: Use # ## ### hierarchy for chapter/section structure
+- Preserve paragraph breaks and original text flow
+- Tables: Full markdown syntax with proper alignment
+- Emphasis: Use **bold** and *italic* appropriately
+- Lists: Maintain original structure (numbered, bulleted)
+</formatting_rules>
 
 <exclusions>
-Always exclude (quote examples found):
+Always exclude:
 - Running headers: <quotes>"MISSION TO ASHANTEE"</quotes>
 - Page numbers: <quotes>"vi", "42"</quotes>
-- "Directions for Placing the Plates" pages (reference only)
+- "Directions for Placing the Plates" content
 - Marginalia, library stamps, bookplates
-- Repeated footers
+- Repeated footers and scanning artifacts
 </exclusions>
 
-<output_requirements>
-- One page entry per processed page
-- Use chapter_start: true for new chapters/sections  
-- Single batch may contain multiple chapter starts
-- Output in input order - don't rearrange
-- Include sections even if not in original TOC
-</output_requirements>
+<quality_control>
+- Maintain chronological reading order
+- Don't infer or fabricate missing content
+- Handle gaps in page sequence appropriately
+- Preserve historical spelling and punctuation
+- Include all readable text, even if formatting is unusual
+</quality_control>
 
 <response_format>
-You must respond with valid JSON only. No markdown, no explanation text.
-Structure:
-{
-  "toc_extracted": {"page_number": "chapter-slug"},
-  "pages": [
-    {
-      "page_number": "1",
-      "content": "extracted text content",
-      "chapter": "chapter-slug", 
-      "filename": "chapter-slug-page-1.qmd",
-      "chapter_start": true,
-      "has_images": false
-    }
-  ]
-}
+Output in this exact format:
+
+## PAGE {{START_PAGE}}
+[Clean markdown content for first page]
+
+## PAGE {{START_PAGE + 1}}
+[Clean markdown content for second page]
+
+Continue for each page in the batch.
 </response_format>

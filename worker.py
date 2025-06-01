@@ -26,7 +26,7 @@ def main():
 
     book_name = pdf_key.split('/')[0]
     logger.info(f"Initializing BookDigitizer for book: {book_name}")
-    digitizer = BookDigitizer(source_pdf=download_path, book_name=book_name)
+    digitizer = BookDigitizer(source_pdf=download_path, book_name=book_name, gcs_bucket_name="book-digitzation-bucket")
     
     logger.info(f"Running batch_and_upload_pdf with batch_size={batch_size}")
     digitizer.batch_and_upload_pdf(batch_size=batch_size)
@@ -36,8 +36,8 @@ def main():
     digitizer.extract_and_upload_images()
     logger.info("Image extraction complete")
 
-    logger.info("Processing text with Textract and LLM")
-    digitizer.process_with_textract()
+    logger.info("Processing text with Google and LLM")
+    digitizer.process_with_ocr()
     logger.info("LLM processing complete")
     
     logger.info("Linking images to content")
@@ -47,10 +47,6 @@ def main():
     logger.info("Creating chapter structure")
     digitizer.create_quarto_chapters()
     logger.info("Chapter creation complete")
-    
-    logger.info("Generating Quarto structure")
-    digitizer.generate_quarto_structure()
-    logger.info("Structure generation complete")
     
     logger.info("Creating final Quarto book")
     digitizer.create_quarto_book()

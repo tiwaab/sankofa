@@ -31,7 +31,9 @@ def lambda_handler(event, context):
                     {'name': 'S3_BUCKET', 'value': s3_bucket},
                     {'name': 'S3_KEY', 'value': s3_key},
                     {'name': 'BOOK_NAME', 'value': book_name},
-                    {'name': 'MISTRAL_API_KEY', 'value': os.getenv('MISTRAL_API_KEY')}
+                    {'name': 'MISTRAL_API_KEY', 'value': os.getenv('MISTRAL_API_KEY')},
+                    {'name': 'GOOGLE_APPLICATION_CREDENTIALS', 'value': '/app/service-account-key.json'}
+
                 ]
             }
         ]

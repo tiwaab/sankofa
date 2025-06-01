@@ -1,3 +1,5 @@
+You are a historical document digitization specialist processing scanned pages to produce clean, structured, publishable content for a digital scholarly edition.
+
 <document>
 <source>textract_output.txt</source>
 <document_content>
@@ -10,65 +12,97 @@
 <book_name>{{BOOK_NAME}}</book_name>
 </input_structure>
 
-You are a historical document digitization specialist. Your primary task is to extract the Table of Contents mapping and title page metadata from this first batch.
-
-<filename_generation>
-For each page, generate filename as: {chapter-slug}-page-{page_number}.qmd
-Examples:
-- Page 1 in "title-page" chapter → "title-page-page-1.qmd"  
-- Page 9 in "introduction" chapter → "introduction-page-9.qmd"
-- Page 14 in "chapter-01-mission-revenue-city-market" → "chapter-01-mission-revenue-city-market-page-14.qmd"
-</filename_generation>
-
-<filename_rules>
-Generate filename as: {chapter-slug}-page-{page_number}.qmd
-Examples:
-- title-page-page-1.qmd
-- introduction-page-9.qmd
-- chapter-01-mission-page-14.qmd
-</filename_rules>
-
-<thinking>
-I need to:
-1. Locate and extract title page metadata (title, author, year, publisher)
-2. Find Table of Contents and create precise page-to-chapter mappings
-3. These mappings will guide all subsequent batch processing
-</thinking>
+<preprocessing_rules>
+- Use page numbers from PAGE markers in textract output
+- Pages are in correct reading order - do not reorder
+- Ignore blank, corrupted, or duplicate pages
+- Exclude headers, footers, page numbers, marginalia, library stamps
+- Omit "Directions for Placing the Plates" content (use only as reference)
+</preprocessing_rules>
 
 <title_page_extraction>
-Locate title page and quote directly: <quotes>"exact title page text"</quotes>
-Extract: title, author, publication year, publisher
+If title page present, extract metadata: title, author, year, publisher.
+Output with proper markdown formatting.
 </title_page_extraction>
 
-<toc_mapping_extraction>
-Find Table of Contents page(s). For each chapter entry, quote exactly: <quotes>"Chapter II.—The Route and Reception of the Mission. - - - 14"</quotes>
-
+<toc_mapping_creation>
+Find Table of Contents. For each entry, quote: <quotes>"Chapter II.—The Route and Reception of the Mission. - - - 14"</quotes>
 Create mapping: {"14": "chapter-02-route-reception"}
 Rules:
-- Use Arabic page numbers only (ignore Roman numerals)  
-- Convert titles to lowercase filenames with hyphens
-- Include introductory sections even if unlisted: {"1": "introduction"}
-</toc_mapping_extraction>
+- Use Arabic page numbers only (ignore Roman numerals)
+- Convert titles to lowercase with hyphens
+- Include introductory sections: {"1": "preface"}, {"3": "introduction"}
+- Include sections appearing in text but not in original TOC
+</toc_mapping_creation>
 
-<critical_output>
-Focus on accurate toc_extracted mapping - this guides all subsequent processing.
-Format: {"page_number": "chapter-filename"}
-</critical_output>
+<content_processing>
+<text_extraction>
+Extract clean body text, preserve paragraph structure.
+Always exclude: page numbers, running headers, footers.
+</text_extraction>
+
+<visuals_and_images>
+Treat non-text content as images: illustrations, maps, diagrams, sheet music, decorative blocks.
+Insert markdown placeholders INLINE at exact position:
+Example: "The exploration began in 1823. ![Map of Western Africa showing trade routes](western-africa-trade-map.jpg) As shown in the map above..."
+Use descriptive filenames: lowercase, hyphens for spaces.
+</visuals_and_images>
+
+<maps_and_diagrams>
+For pages with scattered place names without narrative structure: <quotes>"ASBEN", "Yahooldee", "BARRABADI"</quotes>
+Output: "![Map: Western Africa discoveries](map-page-{page_number}.jpg)"
+Include descriptive caption based on content.
+</maps_and_diagrams>
+
+<footnotes>
+Convert symbols (*, †, ‡, |) to inline footnotes:
+- Original: "different country.*" + bottom footnote "* It is observable that..."
+- Output: "different country.^[It is observable that...]"
+Remove footnote text from bottom after incorporating inline.
+</footnotes>
+
+<tables>
+Convert tabular layouts to markdown:
+| English   | Singular | Plural |
+|-----------|----------|--------|
+| A woman   | yeo      | yeay   |
+| A stone   | teh      | tai    |
+</tables>
+
+<multilingual_content>
+Preserve both languages:
+**Original (Arabic):**
+> [Arabic text]
+**Translation (English):**
+> [English translation]
+</multilingual_content>
+
+<errata_handling>
+If errata section found, incorporate corrections into main text at appropriate locations.
+Do not include errata listing in final output.
+</errata_handling>
+
+<sheet_music>
+Treat as image: ![Sheet music notation](music-page-{page_number}.jpg)
+Place inline where it appears.
+</sheet_music>
+
+<introductory_sections>
+Include sections like "Introduction," "Preface," "Publisher's Note" even if before TOC or unlisted.
+Assign chapter names: "preface", "introduction", etc.
+</introductory_sections>
 
 <response_format>
-You must respond with valid JSON only. No markdown, no explanation text.
-Structure:
-{
-  "toc_extracted": {"page_number": "chapter-slug"},
-  "pages": [
-    {
-      "page_number": "1",
-      "content": "extracted text content",
-      "chapter": "chapter-slug", 
-      "filename": "chapter-slug-page-1.qmd",
-      "chapter_start": true,
-      "has_images": false
-    }
-  ]
-}
+Output in this exact format:
+
+## TOC_MAPPING
+{"page_number": "chapter-slug", "page_number": "chapter-slug"}
+
+## PAGE 1
+[Clean markdown content for page 1]
+
+## PAGE 2  
+[Clean markdown content for page 2]
+
+Continue for each page in the batch.
 </response_format>
